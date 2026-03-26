@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "linkedin-pages-mcp"
+version = "0.1.0"
+description = "MCP server for LinkedIn Company Page management via the official Community Management API"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "MCPWorks Technologies Inc.", email = "hello@mcpworks.io"},
+]
+keywords = ["mcp", "linkedin", "social-media", "company-page", "community-management"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+    "mcp[http]>=1.0.0",
+    "httpx>=0.27.0",
+    "authlib>=1.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.23.0",
+    "black>=24.0.0",
+    "ruff>=0.3.0",
+    "mypy>=1.0.0",
+    "respx>=0.21.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/MCPWorks-Technologies-Inc/linkedin-pages-mcp"
+Repository = "https://github.com/MCPWorks-Technologies-Inc/linkedin-pages-mcp"
+Issues = "https://github.com/MCPWorks-Technologies-Inc/linkedin-pages-mcp/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+linkedin-pages-mcp = "linkedin_pages_mcp.server:main"
+
+[tool.black]
+line-length = 100
+
+[tool.ruff]
+line-length = 100
+
+[tool.mypy]
+strict = true
