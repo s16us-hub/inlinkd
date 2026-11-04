@@ -41,9 +41,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/MCPWorks-Technologies-Inc/linkedin-pages-mcp"
-Repository = "https://github.com/MCPWorks-Technologies-Inc/linkedin-pages-mcp"
-Issues = "https://github.com/MCPWorks-Technologies-Inc/linkedin-pages-mcp/issues"
+Homepage = "https://github.com/s16us-hub/inlinkd"
+Repository = "https://github.com/s16us-hub/inlinkd"
+Issues = "https://github.com/s16us-hub/inlinkd/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
