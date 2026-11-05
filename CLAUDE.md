@@ -44,7 +44,7 @@ src/linkedin_pages_mcp/
 **Comments:** list, create, delete
 **Reactions:** list, add
 **Analytics:** follower stats, page stats, post stats, follower demographics
-**Media:** initialize image upload
+**Media:** upload image (returns media_id for posts)
 **Organization:** get company details
 
 ## Do NOT
