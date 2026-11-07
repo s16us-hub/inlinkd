@@ -99,24 +99,16 @@ class LinkedInPagesClient:
     def __init__(
         self,
         access_token: str,
-        organization_id: str | None = None,
-        person_id: str | None = None,
+        organization_id: str,
         api_version: str | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         if not access_token:
             raise LinkedInAPIError(401, "access token is empty")
-        if bool(organization_id) == bool(person_id):
-            raise LinkedInAPIError(
-                400, "set exactly one of organization_id (company page) or person_id (your profile)"
-            )
-        if organization_id and not organization_id.isdigit():
+        if not organization_id or not organization_id.isdigit():
             raise LinkedInAPIError(400, "organization_id must be the numeric company page ID")
-        if person_id is not None and not person_id.strip():
-            raise LinkedInAPIError(400, "person_id must not be empty")
 
         self.organization_id = organization_id
-        self.person_id = person_id.strip() if person_id else None
         self._client = httpx.AsyncClient(
             base_url=LINKEDIN_API_BASE,
             headers={
@@ -131,23 +123,8 @@ class LinkedInPagesClient:
         )
 
     @property
-    def is_member_mode(self) -> bool:
-        return self.person_id is not None
-
-    @property
     def org_urn(self) -> str:
-        if not self.organization_id:
-            raise LinkedInAPIError(
-                400, "this tool needs a company page; set LINKEDIN_AUTHOR_MODE=organization"
-            )
         return f"urn:li:organization:{self.organization_id}"
-
-    @property
-    def author_urn(self) -> str:
-        """The actor for posts, comments, reactions and uploads: the page or the member."""
-        if self.person_id:
-            return f"urn:li:person:{self.person_id}"
-        return self.org_urn
 
     async def close(self) -> None:
         await self._client.aclose()
@@ -157,14 +134,6 @@ class LinkedInPagesClient:
 
     async def __aexit__(self, *exc: object) -> None:
         await self.close()
-
-    def _require_company_page(self) -> None:
-        if self.is_member_mode:
-            raise LinkedInAPIError(
-                400,
-                "this tool needs a company page and is not available in member mode "
-                "(LINKEDIN_AUTHOR_MODE=member)",
-            )
 
     async def _request(self, method: str, path: str, **kwargs: Any) -> httpx.Response:
         try:
@@ -193,7 +162,7 @@ class LinkedInPagesClient:
             raise LinkedInAPIError(400, "use either article_url or media_id, not both")
 
         body: dict[str, Any] = {
-            "author": self.author_urn,
+            "author": self.org_urn,
             "commentary": text,
             "visibility": visibility,
             "distribution": {
@@ -221,7 +190,7 @@ class LinkedInPagesClient:
 
     async def get_posts(self, count: int = 10, start: int = 0) -> dict[str, Any]:
         params = {
-            "author": self.author_urn,
+            "author": self.org_urn,
             "q": "author",
             "count": _clamp(count, 1, MAX_PAGE_SIZE),
             "start": max(0, int(start)),
@@ -265,7 +234,7 @@ class LinkedInPagesClient:
 
     async def create_comment(self, post_urn: str, text: str) -> dict[str, Any]:
         _check_text(text, MAX_COMMENT_CHARS, "comment text")
-        body = {"actor": self.author_urn, "message": {"text": text}}
+        body = {"actor": self.org_urn, "message": {"text": text}}
         resp = await self._request(
             "POST", f"/socialActions/{urn_path(post_urn)}/comments", json=body
         )
@@ -290,7 +259,7 @@ class LinkedInPagesClient:
     async def add_reaction(self, post_urn: str, reaction_type: str = "LIKE") -> dict[str, Any]:
         if reaction_type not in VALID_REACTIONS:
             raise LinkedInAPIError(400, f"reaction_type must be one of {sorted(VALID_REACTIONS)}")
-        body = {"root": post_urn, "reactionType": reaction_type, "actor": self.author_urn}
+        body = {"root": post_urn, "reactionType": reaction_type, "actor": self.org_urn}
         await self._request("POST", "/reactions", json=body)
         return {"status": "reacted", "type": reaction_type}
 
@@ -302,7 +271,6 @@ class LinkedInPagesClient:
         return value
 
     async def get_follower_statistics(self, time_granularity: str = "MONTH") -> dict[str, Any]:
-        self._require_company_page()
         params = {
             "q": "organizationalEntity",
             "organizationalEntity": self.org_urn,
@@ -312,7 +280,6 @@ class LinkedInPagesClient:
         return _json(resp)
 
     async def get_page_statistics(self, time_granularity: str = "MONTH") -> dict[str, Any]:
-        self._require_company_page()
         params = {
             "q": "organizationalEntity",
             "organizationalEntity": self.org_urn,
@@ -322,7 +289,6 @@ class LinkedInPagesClient:
         return _json(resp)
 
     async def get_share_statistics(self, shares: list[str] | None = None) -> dict[str, Any]:
-        self._require_company_page()
         params: dict[str, Any] = {"q": "organizationalEntity", "organizationalEntity": self.org_urn}
         if shares:
             params["shares"] = ",".join(shares)
@@ -330,7 +296,6 @@ class LinkedInPagesClient:
         return _json(resp)
 
     async def get_follower_demographics(self) -> dict[str, Any]:
-        self._require_company_page()
         # Demographic facets come back on the same follower-statistics resource.
         params = {"q": "organizationalEntity", "organizationalEntity": self.org_urn}
         resp = await self._request("GET", "/organizationalEntityFollowerStatistics", params=params)
@@ -339,7 +304,7 @@ class LinkedInPagesClient:
     # ── Media Upload ──────────────────────────────────────────────────
 
     async def initialize_image_upload(self) -> dict[str, Any]:
-        body = {"initializeUploadRequest": {"owner": self.author_urn}}
+        body = {"initializeUploadRequest": {"owner": self.org_urn}}
         resp = await self._request("POST", "/images?action=initializeUpload", json=body)
         return _json(resp)
 
@@ -358,7 +323,7 @@ class LinkedInPagesClient:
             await self._request(
                 "POST",
                 "/images?action=initializeUpload",
-                json={"initializeUploadRequest": {"owner": self.author_urn}},
+                json={"initializeUploadRequest": {"owner": self.org_urn}},
             )
         ).json()
         value = init.get("value", {})
@@ -381,6 +346,5 @@ class LinkedInPagesClient:
     # ── Organization Info ─────────────────────────────────────────────
 
     async def get_organization(self) -> dict[str, Any]:
-        self._require_company_page()
         resp = await self._request("GET", f"/organizations/{self.organization_id}")
         return _json(resp)

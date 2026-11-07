@@ -32,44 +32,14 @@ _POST_ID = {
 }
 
 
-COMPANY_PAGE_ONLY_TOOLS = {
-    "linkedin_get_follower_stats",
-    "linkedin_get_page_stats",
-    "linkedin_get_post_stats",
-    "linkedin_get_follower_demographics",
-    "linkedin_get_organization",
-}
-
-
-def _author_mode() -> str:
-    mode = os.environ.get("LINKEDIN_AUTHOR_MODE", "organization").strip().lower()
-    if mode not in {"organization", "member"}:
-        raise LinkedInAPIError(400, "LINKEDIN_AUTHOR_MODE must be 'organization' or 'member'")
-    return mode
-
-
 def _get_client() -> LinkedInPagesClient:
     token = os.environ.get("LINKEDIN_ACCESS_TOKEN", "")
+    org_id = os.environ.get("LINKEDIN_ORGANIZATION_ID", "")
     if not token:
         raise LinkedInAPIError(401, "LINKEDIN_ACCESS_TOKEN environment variable is required")
-    if _author_mode() == "member":
-        person_id = os.environ.get("LINKEDIN_PERSON_ID", "")
-        if not person_id:
-            raise LinkedInAPIError(
-                400, "LINKEDIN_PERSON_ID environment variable is required in member mode"
-            )
-        return LinkedInPagesClient(access_token=token, person_id=person_id)
-    org_id = os.environ.get("LINKEDIN_ORGANIZATION_ID", "")
     if not org_id:
         raise LinkedInAPIError(400, "LINKEDIN_ORGANIZATION_ID environment variable is required")
     return LinkedInPagesClient(access_token=token, organization_id=org_id)
-
-
-def visible_tools() -> list[Tool]:
-    """Tools available in the current mode. Member mode hides company-page-only tools."""
-    if _author_mode() == "member":
-        return [t for t in TOOLS if t.name not in COMPANY_PAGE_ONLY_TOOLS]
-    return list(TOOLS)
 
 
 TOOLS: list[Tool] = [
@@ -326,7 +296,7 @@ def main() -> None:
 
     @server.list_tools()
     async def list_tools() -> list[Tool]:
-        return visible_tools()
+        return TOOLS
 
     @server.call_tool()
     async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
