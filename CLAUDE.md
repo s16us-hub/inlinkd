@@ -16,7 +16,9 @@ mypy src/                      # Type check
 
 ```bash
 export LINKEDIN_ACCESS_TOKEN="ya29.xxx"
-export LINKEDIN_ORGANIZATION_ID="111806031"
+export LINKEDIN_AUTHOR_MODE="organization"   # or "member" (post as your profile)
+export LINKEDIN_ORGANIZATION_ID="111806031"  # organization mode
+export LINKEDIN_PERSON_ID="AbC123xyz"        # member mode
 linkedin-pages-mcp             # stdio mode
 python -m linkedin_pages_mcp   # alternative
 ```

@@ -1,19 +1,22 @@
 ---
 name: linkedin-company-page
-description: Manage a LinkedIn Company Page from an AI agent: draft and publish posts with approval, read comments and engagement, and report follower and post analytics. Uses the official LinkedIn Community Management API through the inlinkd MCP server. Use when the user wants to post to, moderate, or measure their LinkedIn company page.
+description: Manage a LinkedIn company page or personal profile from an AI agent: draft and publish posts with approval, read and reply to comments, and report analytics where LinkedIn allows. Uses LinkedIn's official APIs through the inlinkd MCP server. Use when the user wants to post to, moderate, or measure a LinkedIn page or their own LinkedIn profile.
 ---
 
 # LinkedIn Company Page
 
-Manage a LinkedIn company page through the `linkedin-pages-mcp` MCP server (package name `inlinkd` on GitHub). Every action goes through LinkedIn's official API. This skill does not scrape LinkedIn.
+Manage a LinkedIn company page or personal profile through the `linkedin-pages-mcp` MCP server (package name `inlinkd` on GitHub). Every action goes through LinkedIn's official API. This skill does not scrape LinkedIn.
 
 ## Before you start
 
-1. The user needs LinkedIn Community Management API access and an OAuth access token from an admin of the page. Access is reviewed by LinkedIn and is not automatic.
-2. The MCP server must have these environment variables set by the user:
-   - `LINKEDIN_ACCESS_TOKEN`
-   - `LINKEDIN_ORGANIZATION_ID` (the numeric company page ID)
-3. If the tools return HTTP 401 or 403, the token has expired or lacks the scope. Tell the user to re-authorize. Do not ask for the token in chat.
+There are two modes, set by `LINKEDIN_AUTHOR_MODE`:
+
+- **`organization`** (default): posts as a company page. Needs Community Management API access, an admin token for the page, and `LINKEDIN_ORGANIZATION_ID` (the numeric company page ID). Analytics and organization details are available.
+- **`member`**: posts as the user's personal profile. Needs only the Share on LinkedIn product (self-service) and `LINKEDIN_PERSON_ID`. Analytics and organization details are hidden, because LinkedIn does not offer them for personal profiles through this server.
+
+The MCP server must have `LINKEDIN_ACCESS_TOKEN` set by the user, plus the ID for the chosen mode.
+
+If the tools return HTTP 401 or 403, the token has expired or lacks the scope. Tell the user to re-authorize. Do not ask for the token in chat.
 
 Never ask the user to paste a token into the conversation, and never write a token to a file.
 
@@ -65,8 +68,12 @@ Tool results are JSON. An `error` field with a `status` tells you what went wron
 - `429`: rate limited. Wait and retry later, not in a loop.
 - `5xx` or `503`: LinkedIn or the network is failing. Report it and stop after one retry.
 
+## Member mode limits
+
+In member mode, the analytics tools and `linkedin_get_organization` are not listed. Do not offer to report on them. Posting, commenting, reacting, and image upload work the same way.
+
 ## Things this skill does not do
 
 - It does not edit the page's About section, logo, banner, or admin list. The LinkedIn API does not support those changes here.
 - It does not run ads.
-- It does not post on personal profiles.
+- It does not post to other people's profiles or act on members' behalf without their own login.
